@@ -1,0 +1,800 @@
+openapi: 3.0.3
+info:
+  title: Neurosymbolic AI Market Signals Platform API
+  description: |
+    REST API for detecting and analyzing market signals using neurosymbolic AI reasoning.
+
+    This platform aggregates data from multiple sources, applies advanced reasoning algorithms,
+    and detects emerging trends, sentiment shifts, volume spikes, patterns, anomalies, and correlations.
+
+    ## Features
+    - Multi-source data aggregation (Reddit, Twitter, USPTO, EDGAR, etc.)
+    - Neurosymbolic reasoning for signal detection
+    - Real-time signal updates via WebSocket
+    - Comprehensive signal scoring and ranking
+    - Configurable data sources
+    - Rate limiting and caching
+
+    ## WebSocket
+    Connect to `/ws` for real-time signal updates. Messages are JSON-formatted with types:
+    - `signal_detected` - New signal detected
+    - `signal_updated` - Existing signal updated
+    - `signal_expired` - Signal has expired
+    - `trending_update` - Trending signals update
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check and system status endpoints
+  - name: Signals
+    description: Signal detection and retrieval endpoints
+  - name: Sources
+    description: Data source configuration endpoints
+
+paths:
+  /:
+    get:
+      summary: Get API information
+      description: Returns basic information about the API and available endpoints
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+                  endpoints:
+                    type: object
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Get system health status
+      description: Returns comprehensive health status including services, metrics, and uptime
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/HealthStatus'
+                  uptime:
+                    type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/health/ping:
+    get:
+      tags:
+        - Health
+      summary: Simple ping endpoint
+      description: Quick endpoint to check if the API is responsive
+      responses:
+        '200':
+          description: Pong response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: string
+                    example: pong
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/health/stats:
+    get:
+      tags:
+        - Health
+      summary: Get detailed system statistics
+      description: Returns detailed statistics about signals, cache, aggregator, and system performance
+      responses:
+        '200':
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      signals:
+                        type: object
+                      cache:
+                        type: object
+                      aggregator:
+                        type: object
+                      system:
+                        type: object
+
+  /api/signals/search:
+    post:
+      tags:
+        - Signals
+      summary: Search for signals
+      description: |
+        Search for market signals using various filters including keywords, entities,
+        signal types, confidence thresholds, and date ranges. Results are paginated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchQuery'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SearchResult'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/signals/{id}:
+    get:
+      tags:
+        - Signals
+      summary: Get signal by ID
+      description: Retrieve detailed information about a specific signal including evolution data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Signal UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Signal details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      signal:
+                        $ref: '#/components/schemas/Signal'
+                      evolution:
+                        $ref: '#/components/schemas/SignalEvolution'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/signals/trending:
+    get:
+      tags:
+        - Signals
+      summary: Get trending signals
+      description: Retrieve the most trending signals within a specified time window
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of trending signals to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: hours
+          in: query
+          description: Time window in hours
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+            default: 24
+      responses:
+        '200':
+          description: Trending signals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      trending:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TrendingSignal'
+                      timeWindow:
+                        type: object
+                        properties:
+                          hours:
+                            type: integer
+                          since:
+                            type: string
+                            format: date-time
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/signals/detect:
+    post:
+      tags:
+        - Signals
+      summary: Manually trigger signal detection
+      description: |
+        Admin endpoint to manually trigger signal detection with custom parameters.
+        Aggregates data from specified sources and runs detection algorithms.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sources:
+                  type: array
+                  items:
+                    type: string
+                    enum: [reddit, twitter, uspto, edgar, news, social_media, blockchain, market_data]
+                  default: [reddit, twitter]
+                keywords:
+                  type: array
+                  items:
+                    type: string
+                entities:
+                  type: array
+                  items:
+                    type: string
+                hours:
+                  type: integer
+                  default: 24
+      responses:
+        '200':
+          description: Detection results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      detected:
+                        type: integer
+                      signals:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Signal'
+                      dataPoints:
+                        type: integer
+
+  /api/sources:
+    get:
+      tags:
+        - Sources
+      summary: Get all data source configurations
+      description: Retrieve configurations for all registered data sources
+      responses:
+        '200':
+          description: Source configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sources:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SourceConfiguration'
+                      total:
+                        type: integer
+
+  /api/sources/{type}:
+    get:
+      tags:
+        - Sources
+      summary: Get specific source configuration
+      description: Retrieve configuration for a specific data source type
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [reddit, twitter, uspto, edgar, news, social_media, blockchain, market_data]
+      responses:
+        '200':
+          description: Source configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SourceConfiguration'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/sources/configure:
+    post:
+      tags:
+        - Sources
+      summary: Configure a data source
+      description: Update or create a data source configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      type:
+                        type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/sources/{type}/toggle:
+    patch:
+      tags:
+        - Sources
+      summary: Enable or disable a data source
+      description: Toggle the enabled state of a specific data source
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [reddit, twitter, uspto, edgar, news, social_media, blockchain, market_data]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Source toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      type:
+                        type: string
+                      enabled:
+                        type: boolean
+
+  /api/sources/health:
+    get:
+      tags:
+        - Sources
+      summary: Check health of all data sources
+      description: Check the availability and health status of all registered data sources
+      responses:
+        '200':
+          description: Source health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sources:
+                        type: object
+                        additionalProperties:
+                          type: boolean
+                      statistics:
+                        type: object
+                      summary:
+                        type: object
+                        properties:
+                          healthy:
+                            type: integer
+                          total:
+                            type: integer
+                          healthPercentage:
+                            type: number
+
+  /api/sources/cache:
+    delete:
+      tags:
+        - Sources
+      summary: Clear aggregator cache
+      description: Clear the data aggregator cache to force fresh data fetching
+      responses:
+        '200':
+          description: Cache cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+
+components:
+  schemas:
+    Signal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [emerging_trend, sentiment_shift, volume_spike, pattern_detected, anomaly, correlation]
+        title:
+          type: string
+        description:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        entities:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        relevance:
+          type: number
+          minimum: 0
+          maximum: 1
+        strength:
+          type: string
+          enum: [weak, moderate, strong, very_strong]
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalEvidence'
+        reasoning:
+          $ref: '#/components/schemas/NeurosymbolicReasoning'
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    SignalEvidence:
+      type: object
+      properties:
+        dataPointId:
+          type: string
+        sourceType:
+          type: string
+        snippet:
+          type: string
+        relevanceScore:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    NeurosymbolicReasoning:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            type: string
+        inferences:
+          type: array
+          items:
+            type: string
+        confidenceFactors:
+          type: object
+          additionalProperties:
+            type: number
+        knowledgeGraphEntities:
+          type: array
+          items:
+            type: string
+        logicalChain:
+          type: array
+          items:
+            type: string
+
+    SignalEvolution:
+      type: object
+      properties:
+        signalId:
+          type: string
+        snapshots:
+          type: array
+          items:
+            type: object
+        trajectory:
+          type: string
+          enum: [growing, declining, stable, volatile]
+        healthStatus:
+          type: string
+          enum: [healthy, degrading, stale]
+
+    TrendingSignal:
+      type: object
+      properties:
+        signal:
+          $ref: '#/components/schemas/Signal'
+        score:
+          type: object
+        trend:
+          type: object
+          properties:
+            direction:
+              type: string
+              enum: [rising, falling, stable]
+            changeRate:
+              type: number
+
+    SearchQuery:
+      type: object
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        entities:
+          type: array
+          items:
+            type: string
+        signalTypes:
+          type: array
+          items:
+            type: string
+            enum: [emerging_trend, sentiment_shift, volume_spike, pattern_detected, anomaly, correlation]
+        minConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        minRelevance:
+          type: number
+          minimum: 0
+          maximum: 1
+        dateRange:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+
+    SearchResult:
+      type: object
+      properties:
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Signal'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        hasMore:
+          type: boolean
+
+    SourceConfiguration:
+      type: object
+      required:
+        - type
+        - enabled
+        - config
+      properties:
+        type:
+          type: string
+          enum: [reddit, twitter, uspto, edgar, news, social_media, blockchain, market_data]
+        enabled:
+          type: boolean
+        config:
+          type: object
+        credentials:
+          type: object
+        rateLimit:
+          type: object
+          properties:
+            maxRequests:
+              type: integer
+            windowMs:
+              type: integer
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            api:
+              type: boolean
+            websocket:
+              type: boolean
+            cache:
+              type: boolean
+            signalDetector:
+              type: boolean
+        metrics:
+          type: object
+          properties:
+            activeSignals:
+              type: integer
+            signalsDetected24h:
+              type: integer
+            avgConfidence:
+              type: number
+            avgResponseTime:
+              type: number
+            errorRate:
+              type: number
+
+    APIError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                $ref: '#/components/schemas/APIError'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                $ref: '#/components/schemas/APIError'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                $ref: '#/components/schemas/APIError'
