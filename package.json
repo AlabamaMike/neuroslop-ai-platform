@@ -1,0 +1,129 @@
+{
+  "name": "neuroslop-ai-platform",
+  "version": "1.0.0",
+  "description": "A neurosymbolic AI platform for market signals analysis using LLMs and knowledge graphs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:tsc && npm run build:bundle",
+    "build:tsc": "tsc",
+    "build:bundle": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "build:prod": "NODE_ENV=production npm run build",
+    "clean": "rm -rf dist coverage",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/api/server.js",
+    "dev:api": "tsx watch src/api/server.ts",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\" \"tests/**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\" \"tests/**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run typecheck && npm run lint && npm run test:coverage",
+    "prepublishOnly": "npm run validate && npm run build:prod",
+    "prepare": "husky install || true"
+  },
+  "keywords": [
+    "ai",
+    "machine-learning",
+    "neurosymbolic",
+    "market-analysis",
+    "knowledge-graph",
+    "llm",
+    "reasoning",
+    "signals",
+    "trading",
+    "sentiment-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/neuroslop-ai-platform.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/neuroslop-ai-platform/issues"
+  },
+  "homepage": "https://github.com/yourusername/neuroslop-ai-platform#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "neo4j-driver": "^5.15.0",
+    "node-cache": "^5.1.2",
+    "snoowrap": "^1.23.0",
+    "swagger-ui-express": "^5.0.0",
+    "twitter-api-v2": "^1.17.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "ws": "^8.14.2",
+    "yamljs": "^0.3.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.4",
+    "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "@types/yamljs": "^0.2.34",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitest/coverage-v8": "^1.0.4",
+    "@vitest/ui": "^1.0.4",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.1",
+    "supertest": "^6.3.3",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.7",
+    "vitest": "^1.0.4"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
