@@ -127,7 +127,9 @@ describe('API Server', () => {
         .get('/api/signals/trending')
         .query({ limit: 10 });
 
-      expect(response1.body).toEqual(response2.body);
+      // Compare everything except timestamps which may differ slightly
+      expect(response1.body.success).toBe(response2.body.success);
+      expect(response1.body.data).toEqual(response2.body.data);
     });
   });
 

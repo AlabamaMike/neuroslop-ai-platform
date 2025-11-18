@@ -103,6 +103,41 @@ export function createSignalRoutes(
   );
 
   /**
+   * GET /api/signals/trending
+   * Get trending signals
+   * NOTE: This must come before /:id route to avoid matching /trending as an ID
+   */
+  router.get(
+    '/trending',
+    validateRequest(schemas.trendingSignals),
+    cacheMiddleware(120), // Cache for 2 minutes
+    asyncHandler(async (req, res) => {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const hours = parseInt(req.query.hours as string) || 24;
+
+      const trendingSignals = detector.getTrendingSignals(limit);
+
+      // Filter by time window
+      const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const filtered = trendingSignals.filter(ts =>
+        ts.signal.createdAt >= cutoffTime
+      );
+
+      res.json({
+        success: true,
+        data: {
+          trending: filtered,
+          timeWindow: {
+            hours,
+            since: cutoffTime,
+          },
+        },
+        timestamp: new Date(),
+      });
+    })
+  );
+
+  /**
    * GET /api/signals/:id
    * Get detailed information about a specific signal
    */
@@ -131,40 +166,6 @@ export function createSignalRoutes(
         data: {
           signal,
           evolution,
-        },
-        timestamp: new Date(),
-      });
-    })
-  );
-
-  /**
-   * GET /api/signals/trending
-   * Get trending signals
-   */
-  router.get(
-    '/trending',
-    validateRequest(schemas.trendingSignals),
-    cacheMiddleware(120), // Cache for 2 minutes
-    asyncHandler(async (req, res) => {
-      const limit = parseInt(req.query.limit as string) || 10;
-      const hours = parseInt(req.query.hours as string) || 24;
-
-      const trendingSignals = detector.getTrendingSignals(limit);
-
-      // Filter by time window
-      const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
-      const filtered = trendingSignals.filter(ts =>
-        ts.signal.createdAt >= cutoffTime
-      );
-
-      res.json({
-        success: true,
-        data: {
-          trending: filtered,
-          timeWindow: {
-            hours,
-            since: cutoffTime,
-          },
         },
         timestamp: new Date(),
       });

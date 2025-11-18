@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LLMService } from '@/core/llmService';
 import { mockAnthropicAPI } from '@tests/fixtures/mocks';
 
-vi.mock('anthropic', () => ({
+vi.mock('@anthropic-ai/sdk', () => ({
   default: vi.fn().mockImplementation(() => mockAnthropicAPI),
 }));
 

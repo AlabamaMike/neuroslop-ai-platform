@@ -127,9 +127,24 @@ export class APIServer {
     // Compression
     this.app.use(compression());
 
-    // Body parsing
+    // Body parsing with error handling
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+
+    // JSON parsing error handler
+    this.app.use((err: any, req: any, res: any, next: any) => {
+      if (err instanceof SyntaxError && 'body' in err) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_JSON',
+            message: 'Invalid JSON in request body',
+            timestamp: new Date(),
+          },
+        });
+      }
+      next(err);
+    });
 
     // Logging
     this.app.use(requestLogger);

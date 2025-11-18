@@ -91,7 +91,7 @@ describe('NeuralEngine', () => {
 
     it('should detect anomalies', async () => {
       const signals: MarketSignal[] = [
-        ...Array.from({ length: 5 }, (_, i) => ({
+        ...Array.from({ length: 10 }, (_, i) => ({
           id: `sig${i}`,
           timestamp: new Date(Date.now() + i * 1000),
           source: 'test',
@@ -103,11 +103,11 @@ describe('NeuralEngine', () => {
         })),
         {
           id: 'anomaly',
-          timestamp: new Date(Date.now() + 6000),
+          timestamp: new Date(Date.now() + 11000),
           source: 'test',
           type: 'price',
           symbol: 'BTC',
-          value: 500, // Anomaly
+          value: 10000, // Extreme anomaly: z-score >> 2.5
           confidence: 0.8,
           metadata: {},
         },

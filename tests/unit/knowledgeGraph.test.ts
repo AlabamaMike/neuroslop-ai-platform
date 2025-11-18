@@ -1,13 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KnowledgeGraph } from '@/core/knowledgeGraph';
-import { mockNeo4jDriver, mockNeo4jSession } from '@tests/fixtures/mocks';
 import { mockKnowledgeGraphNode, mockKnowledgeGraphRelationship } from '@tests/fixtures/mockData';
+
+// Create mocks inline to avoid hoisting issues
+const mockNeo4jSession = {
+  run: vi.fn().mockResolvedValue({
+    records: [],
+  }),
+  close: vi.fn().mockResolvedValue(undefined),
+};
+
+const mockNeo4jDriver = {
+  session: vi.fn().mockReturnValue(mockNeo4jSession),
+  close: vi.fn().mockResolvedValue(undefined),
+  verifyConnectivity: vi.fn().mockResolvedValue(undefined),
+};
 
 vi.mock('neo4j-driver', () => ({
   default: {
-    driver: vi.fn().mockReturnValue(mockNeo4jDriver),
+    driver: vi.fn(() => mockNeo4jDriver),
     auth: {
-      basic: vi.fn().mockReturnValue({}),
+      basic: vi.fn(() => ({})),
     },
   },
 }));

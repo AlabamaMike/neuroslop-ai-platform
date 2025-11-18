@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   DataSourceType,
   TwitterConfig,
@@ -7,51 +8,14 @@ import {
 } from '../../src/data-sources/types';
 
 // Mock twitter-api-v2
-jest.mock('twitter-api-v2', () => {
-  return {
-    TwitterApi: jest.fn().mockImplementation(() => ({
-      v2: {
-        search: jest.fn().mockResolvedValue({
-          data: [
-            {
-              id: '1234567890',
-              text: 'Test tweet about Bitcoin #crypto',
-              author_id: 'user123',
-              created_at: '2024-01-01T00:00:00.000Z',
-              public_metrics: {
-                like_count: 100,
-                retweet_count: 50,
-                reply_count: 25,
-                quote_count: 10,
-              },
-              entities: {
-                hashtags: [{ tag: 'crypto' }],
-                mentions: [{ username: 'testuser' }],
-              },
-            },
-          ],
-          includes: {
-            users: [
-              {
-                id: 'user123',
-                username: 'testuser',
-                name: 'Test User',
-                verified: false,
-                public_metrics: {
-                  followers_count: 1000,
-                },
-              },
-            ],
-          },
-          meta: {
-            result_count: 1,
-            next_token: 'next123',
-          },
-        }),
-        singleTweet: jest.fn().mockResolvedValue({
-          data: {
+vi.mock('twitter-api-v2', () => ({
+  TwitterApi: vi.fn().mockImplementation(() => ({
+    v2: {
+      search: vi.fn().mockResolvedValue({
+        data: [
+          {
             id: '1234567890',
-            text: 'Test tweet',
+            text: 'Test tweet about Bitcoin #crypto',
             author_id: 'user123',
             created_at: '2024-01-01T00:00:00.000Z',
             public_metrics: {
@@ -60,12 +24,47 @@ jest.mock('twitter-api-v2', () => {
               reply_count: 25,
               quote_count: 10,
             },
+            entities: {
+              hashtags: [{ tag: 'crypto' }],
+              mentions: [{ username: 'testuser' }],
+            },
           },
-        }),
-      },
-    })),
-  };
-});
+        ],
+        includes: {
+          users: [
+            {
+              id: 'user123',
+              username: 'testuser',
+              name: 'Test User',
+              verified: false,
+              public_metrics: {
+                followers_count: 1000,
+              },
+            },
+          ],
+        },
+        meta: {
+          result_count: 1,
+          next_token: 'next123',
+        },
+      }),
+      singleTweet: vi.fn().mockResolvedValue({
+        data: {
+          id: '1234567890',
+          text: 'Test tweet',
+          author_id: 'user123',
+          created_at: '2024-01-01T00:00:00.000Z',
+          public_metrics: {
+            like_count: 100,
+            retweet_count: 50,
+            reply_count: 25,
+            quote_count: 10,
+          },
+        },
+      }),
+    },
+  })),
+}));
 
 describe('TwitterDataSource', () => {
   let twitterConfig: TwitterConfig;

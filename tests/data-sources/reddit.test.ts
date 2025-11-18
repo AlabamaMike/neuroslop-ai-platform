@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   DataSourceType,
   RedditConfig,
@@ -8,9 +9,9 @@ import {
 } from '../../src/data-sources/types';
 
 // Mock snoowrap
-jest.mock('snoowrap', () => {
-  return jest.fn().mockImplementation(() => ({
-    search: jest.fn().mockResolvedValue([
+vi.mock('snoowrap', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    search: vi.fn().mockResolvedValue([
       {
         id: 'test123',
         title: 'Test Post',
@@ -33,8 +34,8 @@ jest.mock('snoowrap', () => {
         domain: 'self.test',
       },
     ]),
-    getSubmission: jest.fn().mockReturnValue({
-      fetch: jest.fn().mockResolvedValue({
+    getSubmission: vi.fn().mockReturnValue({
+      fetch: vi.fn().mockResolvedValue({
         id: 'test123',
         title: 'Test Post',
         selftext: 'Test content',
@@ -52,12 +53,12 @@ jest.mock('snoowrap', () => {
         upvote_ratio: 0.95,
       }),
     }),
-    getSubreddit: jest.fn().mockReturnValue({
-      getNew: jest.fn().mockResolvedValue([]),
-      getHot: jest.fn().mockResolvedValue([]),
+    getSubreddit: vi.fn().mockReturnValue({
+      getNew: vi.fn().mockResolvedValue([]),
+      getHot: vi.fn().mockResolvedValue([]),
     }),
-  }));
-});
+  })),
+}));
 
 describe('RedditDataSource', () => {
   let redditConfig: RedditConfig;

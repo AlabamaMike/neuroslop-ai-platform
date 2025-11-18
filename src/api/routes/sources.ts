@@ -33,29 +33,32 @@ export function createSourceRoutes(aggregator: DataAggregator): Router {
   );
 
   /**
-   * GET /api/sources/:type
-   * Get specific source configuration
+   * GET /api/sources/health
+   * Check health of all data sources
+   * NOTE: This must come before /:type route to avoid matching /health as a type
    */
   router.get(
-    '/:type',
+    '/health',
     asyncHandler(async (req, res) => {
-      const { type } = req.params;
+      const health = await aggregator.checkSourcesHealth();
+      const statistics = aggregator.getStatistics();
 
-      const configuration = aggregator.getSourceConfiguration(
-        type as DataSourceType
-      );
-
-      if (!configuration) {
-        throw new AppError(
-          `Source configuration for ${type} not found`,
-          404,
-          'SOURCE_NOT_FOUND'
-        );
-      }
+      const healthySources = Object.values(health).filter(h => h).length;
+      const totalSources = Object.keys(health).length;
 
       res.json({
         success: true,
-        data: configuration,
+        data: {
+          sources: health,
+          statistics,
+          summary: {
+            healthy: healthySources,
+            total: totalSources,
+            healthPercentage: totalSources > 0
+              ? (healthySources / totalSources) * 100
+              : 0,
+          },
+        },
         timestamp: new Date(),
       });
     })
@@ -91,6 +94,55 @@ export function createSourceRoutes(aggregator: DataAggregator): Router {
           message: 'Source configuration updated successfully',
           type: configuration.type,
         },
+        timestamp: new Date(),
+      });
+    })
+  );
+
+  /**
+   * DELETE /api/sources/cache
+   * Clear the aggregator cache
+   */
+  router.delete(
+    '/cache',
+    configLimiter,
+    asyncHandler(async (req, res) => {
+      aggregator.clearCache();
+
+      res.json({
+        success: true,
+        data: {
+          message: 'Cache cleared successfully',
+        },
+        timestamp: new Date(),
+      });
+    })
+  );
+
+  /**
+   * GET /api/sources/:type
+   * Get specific source configuration
+   */
+  router.get(
+    '/:type',
+    asyncHandler(async (req, res) => {
+      const { type } = req.params;
+
+      const configuration = aggregator.getSourceConfiguration(
+        type as DataSourceType
+      );
+
+      if (!configuration) {
+        throw new AppError(
+          `Source configuration for ${type} not found`,
+          404,
+          'SOURCE_NOT_FOUND'
+        );
+      }
+
+      res.json({
+        success: true,
+        data: configuration,
         timestamp: new Date(),
       });
     })
@@ -134,37 +186,6 @@ export function createSourceRoutes(aggregator: DataAggregator): Router {
           message: `Source ${type} ${enabled ? 'enabled' : 'disabled'}`,
           type,
           enabled,
-        },
-        timestamp: new Date(),
-      });
-    })
-  );
-
-  /**
-   * GET /api/sources/health
-   * Check health of all data sources
-   */
-  router.get(
-    '/health',
-    asyncHandler(async (req, res) => {
-      const health = await aggregator.checkSourcesHealth();
-      const statistics = aggregator.getStatistics();
-
-      const healthySources = Object.values(health).filter(h => h).length;
-      const totalSources = Object.keys(health).length;
-
-      res.json({
-        success: true,
-        data: {
-          sources: health,
-          statistics,
-          summary: {
-            healthy: healthySources,
-            total: totalSources,
-            healthPercentage: totalSources > 0
-              ? (healthySources / totalSources) * 100
-              : 0,
-          },
         },
         timestamp: new Date(),
       });
